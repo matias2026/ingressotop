@@ -13,6 +13,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/supabase.js"></script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 
 <body>
@@ -48,7 +49,13 @@
                 required
             >
 
-            <button type="submit">
+            <div
+                id="loginAtletaRecaptcha"
+                class="g-recaptcha"
+                data-sitekey="6LcbOrEtAAAAAGXEtXz6rLutymwcp-s-deT92hUZ"
+            ></div>
+
+            <button type="submit" id="loginAtletaSubmitButton">
                 Entrar
             </button>
 
@@ -119,5 +126,7 @@
 <script src="assets/js/validacao.js"></script>
 <script src="assets/js/auth-atleta.js"></script>
 
+<script defer src="/_vercel/insights/script.js"></script>
+<script src="/assets/js/cookie-aviso.js" defer></script>
 </body>
 </html>

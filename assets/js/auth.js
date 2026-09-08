@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const emailInput = document.getElementById("email");
     const passwordInput = document.getElementById("password");
+    const submitButton = document.getElementById("loginSubmitButton");
 
     window.ativarRevalidacaoAoDigitar?.(emailInput, (input) =>
         window.validarCampoEmail(input)
@@ -33,32 +34,70 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const email = emailInput.value.trim();
-        const password = passwordInput.value;
+        const recaptchaToken = window.grecaptcha?.getResponse();
 
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-            email,
-            password
-        });
-
-        if (error) {
+        if (!recaptchaToken) {
             window.mostrarToast(
-                "Não foi possível entrar. Confira o e-mail e a senha.",
+                "Confirme que você não é um robô.",
                 "erro"
             );
             return;
         }
 
-        const { data: perfil } = await supabaseClient
-            .from("profiles")
-            .select("role")
-            .eq("id", data.user.id)
-            .maybeSingle();
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
 
-        window.location.href =
-            perfil?.role === "admin"
-                ? "admin/eventos-pendentes.html"
-                : "organizador/index.html";
+        submitButton.disabled = true;
+        submitButton.textContent = "Entrando...";
+
+        try {
+            const resposta = await fetch("/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password, recaptchaToken })
+            });
+
+            const resultado = await resposta.json().catch(() => ({}));
+
+            if (!resposta.ok) {
+                window.mostrarToast(
+                    resultado.erro ||
+                        "Não foi possível entrar. Confira o e-mail e a senha.",
+                    "erro"
+                );
+                window.grecaptcha?.reset();
+                return;
+            }
+
+            const { data: sessionData, error: erroSessao } =
+                await supabaseClient.auth.setSession({
+                    access_token: resultado.access_token,
+                    refresh_token: resultado.refresh_token
+                });
+
+            if (erroSessao) {
+                window.mostrarToast(
+                    "Não foi possível entrar. Tente novamente.",
+                    "erro"
+                );
+                window.grecaptcha?.reset();
+                return;
+            }
+
+            const { data: perfil } = await supabaseClient
+                .from("profiles")
+                .select("role")
+                .eq("id", sessionData.user.id)
+                .maybeSingle();
+
+            window.location.href =
+                perfil?.role === "admin"
+                    ? "admin/eventos-pendentes.html"
+                    : "organizador/index.html";
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = "Entrar";
+        }
 
     });
 

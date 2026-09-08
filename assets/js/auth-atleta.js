@@ -43,6 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const loginEmailInput = document.getElementById("loginEmail");
     const loginSenhaInput = document.getElementById("loginSenha");
+    const loginSubmitButton = document.getElementById("loginAtletaSubmitButton");
 
     window.ativarRevalidacaoAoDigitar?.(loginEmailInput, (input) =>
         window.validarCampoEmail(input)
@@ -69,29 +70,66 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const email = loginEmailInput.value.trim();
-        const senha = loginSenhaInput.value;
+        const recaptchaToken = window.grecaptcha?.getResponse();
 
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-            email,
-            password: senha
-        });
-
-        if (error) {
+        if (!recaptchaToken) {
             mostrarMensagem(
-                "E-mail ou senha incorretos.",
+                "Confirme que você não é um robô.",
                 "error"
             );
             return;
         }
 
-        const { data: perfil } = await supabaseClient
-            .from("profiles")
-            .select("role")
-            .eq("id", data.user.id)
-            .maybeSingle();
+        const email = loginEmailInput.value.trim();
+        const senha = loginSenhaInput.value;
 
-        redirecionarPorPapel(perfil?.role);
+        loginSubmitButton.disabled = true;
+        loginSubmitButton.textContent = "Entrando...";
+
+        try {
+            const resposta = await fetch("/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password: senha, recaptchaToken })
+            });
+
+            const resultado = await resposta.json().catch(() => ({}));
+
+            if (!resposta.ok) {
+                mostrarMensagem(
+                    resultado.erro || "E-mail ou senha incorretos.",
+                    "error"
+                );
+                window.grecaptcha?.reset();
+                return;
+            }
+
+            const { data: sessionData, error: erroSessao } =
+                await supabaseClient.auth.setSession({
+                    access_token: resultado.access_token,
+                    refresh_token: resultado.refresh_token
+                });
+
+            if (erroSessao) {
+                mostrarMensagem(
+                    "Não foi possível entrar. Tente novamente.",
+                    "error"
+                );
+                window.grecaptcha?.reset();
+                return;
+            }
+
+            const { data: perfil } = await supabaseClient
+                .from("profiles")
+                .select("role")
+                .eq("id", sessionData.user.id)
+                .maybeSingle();
+
+            redirecionarPorPapel(perfil?.role);
+        } finally {
+            loginSubmitButton.disabled = false;
+            loginSubmitButton.textContent = "Entrar";
+        }
     });
 
     const cadastroNomeInput = document.getElementById("cadastroNome");
