@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#8ec8ff">
+  <meta name="robots" content="noindex, follow">
+  <title>Página não encontrada | CorraAgora</title>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+  <link rel="stylesheet" href="assets/css/style.css">
+
+  <style>
+    .error-page{
+      min-height:calc(100dvh - 84px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:40px 20px;
+    }
+    .error-card{max-width:480px;text-align:center}
+    .error-code{
+      font-size:88px;
+      font-weight:800;
+      line-height:1;
+      background:linear-gradient(135deg,var(--blue-strong),var(--blue));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      margin-bottom:8px;
+    }
+    .error-card h1{font-size:24px;margin:0 0 10px}
+    .error-card p{color:var(--muted);line-height:1.6;margin-bottom:28px}
+    .error-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  </style>
+</head>
+
+<body>
+
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="/">
+        <img src="images/logo-corraagora-trim.png" alt="CorraAgora">
+      </a>
+    </div>
+  </header>
+
+  <main class="error-page">
+    <div class="error-card">
+      <div class="error-code">404</div>
+      <h1>Essa página não existe</h1>
+      <p>
+        O link pode estar quebrado ou a página pode ter sido removida.
+        Que tal voltar pra encontrar um evento pra correr?
+      </p>
+      <div class="error-actions">
+        <a class="btn btn-primary" href="/">Voltar para a página inicial</a>
+        <a class="btn btn-outline" href="/#eventos">Ver eventos</a>
+      </div>
+    </div>
+  </main>
+
+<script defer src="/_vercel/insights/script.js"></script>
+<script src="/assets/js/cookie-aviso.js" defer></script>
+</body>
+</html>

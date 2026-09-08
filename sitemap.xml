@@ -19,6 +19,18 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.corraagora.com.br/minha-conta.html</loc>
+    <lastmod>2026-09-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.corraagora.com.br/cadastro.html</loc>
+    <lastmod>2026-09-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://www.corraagora.com.br/termos.html</loc>
     <lastmod>2026-08-30</lastmod>
     <changefreq>yearly</changefreq>
