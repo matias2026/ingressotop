@@ -25,12 +25,12 @@ function formatarMoeda(valor) {
   }).format(valor);
 }
 
-async function buscarPrecoMinimo(eventoId) {
+async function buscarCategorias(eventoId) {
   try {
     const resp = await fetch(
       `${SUPABASE_URL}/rest/v1/categorias?evento_id=eq.${encodeURIComponent(
         eventoId
-      )}&select=valor`,
+      )}&select=nome,percurso,valor&order=ordem.asc`,
       {
         headers: {
           apikey: SUPABASE_PUBLIC_KEY,
@@ -39,14 +39,105 @@ async function buscarPrecoMinimo(eventoId) {
       }
     );
     const categorias = await resp.json();
-    const valores = (Array.isArray(categorias) ? categorias : [])
-      .map((c) => Number(c.valor))
-      .filter((v) => !Number.isNaN(v) && v >= 0);
+    return Array.isArray(categorias) ? categorias : [];
+  } catch (erro) {
+    return [];
+  }
+}
 
-    return valores.length ? Math.min(...valores) : null;
+async function buscarNomeOrganizador(organizadorId) {
+  if (!organizadorId) return null;
+
+  try {
+    const resp = await fetch(
+      `${SUPABASE_URL}/rest/v1/organizadores_publicos?id=eq.${encodeURIComponent(
+        organizadorId
+      )}&select=full_name`,
+      {
+        headers: {
+          apikey: SUPABASE_PUBLIC_KEY,
+          Authorization: `Bearer ${SUPABASE_PUBLIC_KEY}`
+        }
+      }
+    );
+    const linhas = await resp.json();
+    return Array.isArray(linhas) && linhas[0] ? linhas[0].full_name : null;
   } catch (erro) {
     return null;
   }
+}
+
+function precoMinimoDe(categorias) {
+  const valores = categorias
+    .map((c) => Number(c.valor))
+    .filter((v) => !Number.isNaN(v) && v >= 0);
+
+  return valores.length ? Math.min(...valores) : null;
+}
+
+function montarDataHoraISO(dataEvento, horarioEvento) {
+  if (!dataEvento) return null;
+  const hora = horarioEvento || "00:00:00";
+  // Sem fuso horário explícito no banco — usamos o horário de Brasília (-03:00),
+  // já que é o público-alvo do site inteiro.
+  return `${dataEvento}T${hora}-03:00`;
+}
+
+function montarJsonLd({ evento, urlEvento, imagem, nomeOrganizador, categorias }) {
+  const dataHoraISO = montarDataHoraISO(evento.data_evento, evento.horario_evento);
+
+  const local = {
+    "@type": "Place",
+    name: evento.endereco || evento.cidade || "Local a definir",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: evento.cidade || undefined,
+      addressRegion: evento.estado || undefined,
+      addressCountry: "BR"
+    }
+  };
+
+  const precoMinimo = precoMinimoDe(categorias);
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SportsEvent",
+    name: evento.nome || "Evento esportivo",
+    description: evento.descricao || `${evento.nome} — evento esportivo na CorraAgora.`,
+    image: imagem,
+    url: urlEvento,
+    startDate: dataHoraISO || undefined,
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    location: local,
+    organizer: nomeOrganizador
+      ? { "@type": "Organization", name: nomeOrganizador }
+      : undefined,
+    offers:
+      precoMinimo === null
+        ? undefined
+        : {
+            "@type": "Offer",
+            price: precoMinimo,
+            priceCurrency: "BRL",
+            url: urlEvento,
+            availability: "https://schema.org/InStock"
+          },
+    // Cada categoria vira um "sub-evento" — é como o schema.org representa
+    // as diferentes distâncias/percursos dentro do mesmo evento principal.
+    subEvent: categorias.length
+      ? categorias.map((categoria) => ({
+          "@type": "SportsEvent",
+          name: categoria.percurso
+            ? `${categoria.nome} — ${categoria.percurso}`
+            : categoria.nome,
+          startDate: dataHoraISO || undefined,
+          location: local
+        }))
+      : undefined
+  };
+
+  return jsonLd;
 }
 
 module.exports = async (req, res) => {
@@ -70,7 +161,7 @@ module.exports = async (req, res) => {
       const respEvento = await fetch(
         `${SUPABASE_URL}/rest/v1/eventos?slug=eq.${encodeURIComponent(
           slug
-        )}&status=eq.aprovado&select=id,nome,modalidade,cidade,estado,data_evento,banner_url`,
+        )}&status=eq.aprovado&select=id,nome,modalidade,cidade,estado,endereco,data_evento,horario_evento,descricao,banner_url,organizador_id`,
         {
           headers: {
             apikey: SUPABASE_PUBLIC_KEY,
@@ -87,7 +178,8 @@ module.exports = async (req, res) => {
           .filter(Boolean)
           .join(" - ");
         const dataFormatada = formatarData(evento.data_evento);
-        const precoMinimo = await buscarPrecoMinimo(evento.id);
+        const categorias = await buscarCategorias(evento.id);
+        const precoMinimo = precoMinimoDe(categorias);
         const precoFormatado =
           precoMinimo === null
             ? null
@@ -141,6 +233,32 @@ module.exports = async (req, res) => {
         html = html.replace(
           /<title>[^<]*<\/title>/,
           `<title>${tituloEsc}</title>`
+        );
+
+        const nomeOrganizador = await buscarNomeOrganizador(
+          evento.organizador_id
+        );
+
+        const jsonLd = montarJsonLd({
+          evento,
+          urlEvento,
+          imagem,
+          nomeOrganizador,
+          categorias
+        });
+
+        // JSON.stringify normal deixaria a string "</script>" passar direto
+        // se aparecesse dentro de algum texto do organizador — isso fecharia
+        // a tag cedo demais. Escapar a barra evita esse problema.
+        const jsonLdSeguro = JSON.stringify(jsonLd).replace(/<\/script>/gi, "<\\/script>");
+
+        const blocoJsonLd = `<!-- JSONLD_START -->
+  <script type="application/ld+json">${jsonLdSeguro}</script>
+  <!-- JSONLD_END -->`;
+
+        html = html.replace(
+          /<!-- JSONLD_START -->[\s\S]*?<!-- JSONLD_END -->/,
+          blocoJsonLd
         );
       }
     } catch (erro) {

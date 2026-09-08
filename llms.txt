@@ -1,0 +1,28 @@
+# CorraAgora
+
+> CorraAgora é uma plataforma online de inscrições para eventos esportivos no Brasil — corridas de rua, mountain bike (MTB), trail run, ciclismo e triathlon.
+
+Organizadores publicam seus eventos com categorias, lotes de preço, regulamento e local; atletas encontram eventos perto de si e se inscrevem em poucos minutos, com ou sem conta cadastrada. Todo o site é gratuito para o atleta se inscrever — o organizador é quem define preço, vagas e forma de pagamento (PIX ou link) de cada evento.
+
+## Funcionalidades principais
+
+- Busca e listagem pública de eventos esportivos aprovados, com filtro por modalidade, cidade e data.
+- Inscrição em evento com formulário de dados do atleta, categoria, cupom de desconto e comprovante de pagamento.
+- Consulta de inscrição por CPF e e-mail, sem precisar de conta, para quem se inscreveu como visitante.
+- Conta de atleta opcional ("Minha conta"), para reaproveitar dados em inscrições futuras e ver o histórico.
+- Painel do organizador: criação e edição de evento, lotes de preço por categoria, cupons de desconto, lista de inscritos, confirmação/cancelamento de inscrição e exportação de dados.
+- Painel de administração: aprovação de eventos e de cadastros de organizador, e moderação de contas.
+
+## Páginas principais
+
+- [Página inicial](https://www.corraagora.com.br/): lista de eventos esportivos aprovados, com busca e filtros.
+- [Minha conta](https://www.corraagora.com.br/minha-conta.html): login e cadastro de conta de atleta.
+- [Organizadores — login](https://www.corraagora.com.br/login.html): acesso ao painel de quem organiza eventos.
+- [Criar conta de organizador](https://www.corraagora.com.br/cadastro.html): cadastro para publicar eventos na plataforma.
+- [Minhas inscrições](https://www.corraagora.com.br/minhas-inscricoes.html): histórico de inscrições de uma conta de atleta logada.
+
+## Observações para IAs e buscadores
+
+- Cada evento tem sua própria página (`/evento.html?slug=...`), gerada dinamicamente com nome, data, local, categorias e preço mínimo — inclusive em formato de dados estruturados (JSON-LD, tipo `SportsEvent`).
+- Não é possível pagar inscrição dentro do site — o pagamento é feito fora da plataforma (PIX ou link informado pelo organizador), e a confirmação é manual, feita pelo próprio organizador.
+- Site em português do Brasil, focado no mercado brasileiro de corridas e eventos esportivos amadores.
